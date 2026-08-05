@@ -51,11 +51,18 @@ FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
 # pyright is a Node package, not a Python venv, so there is no /venvs/pyright
 # to install into. Build a plain venv for it instead and point pyright at that
 # interpreter with --pythonpath.
+#
+# PIP_CACHE_DIR is redirected because pip's default (/github/home/.cache/pip)
+# is not writable by the container user, which makes pip warn and disable
+# caching entirely. /tmp is writable, so both installs share a real cache.
 PRE_COMMANDS:
-  - command: cd /github/workspace && pip install -e .[dev]
+  - command: >-
+      cd /github/workspace &&
+      PIP_CACHE_DIR=/tmp/pip-cache pip install -e .[dev]
     venv: pylint
   - command: >-
       python3 -m venv /tmp/pyright-venv &&
+      PIP_CACHE_DIR=/tmp/pip-cache
       /tmp/pyright-venv/bin/pip install -e "/github/workspace[dev]"
     cwd: "workspace"
 
