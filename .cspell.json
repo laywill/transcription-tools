@@ -32,7 +32,9 @@
     "srt",
     "conftest",
     "capsys",
-    "Udemy"
+    "Udemy",
+    "docstrings",
+    "pythonpath"
   ],
   "ignorePaths": [
     ".git",

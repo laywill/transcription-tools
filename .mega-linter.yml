@@ -41,16 +41,26 @@ EDITORCONFIG_EDITORCONFIG_CHECKER_FILTER_REGEX_EXCLUDE: (LICENSE)
 FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
 
 # Install project + dev dependencies so PYLINT and PYRIGHT can resolve imports
-# (pysrt, pytest) instead of reporting them as missing. MegaLinter runs each
-# Python-based linter in its own venv (named after the linter), so the install
-# must be repeated per linter venv. The `cd` is explicit because the `cwd`
-# key is ignored when `venv` is set: pip otherwise runs in /venvs/<linter>
-# and fails with "does not appear to be a Python project".
+# (pysrt, pytest) instead of reporting them as missing.
+#
+# pylint runs in its own MegaLinter venv (/venvs/pylint), so the install has
+# to happen inside it. The `cd` is explicit because the `cwd` key is ignored
+# when `venv` is set: pip otherwise runs in /venvs/pylint and fails with
+# "does not appear to be a Python project".
+#
+# pyright is a Node package, not a Python venv, so there is no /venvs/pyright
+# to install into. Build a plain venv for it instead and point pyright at that
+# interpreter with --pythonpath.
 PRE_COMMANDS:
   - command: cd /github/workspace && pip install -e .[dev]
     venv: pylint
-  - command: cd /github/workspace && pip install -e .[dev]
-    venv: pyright
+  - command: >-
+      python3 -m venv /tmp/pyright-venv &&
+      /tmp/pyright-venv/bin/pip install -e "/github/workspace[dev]"
+    cwd: "workspace"
+
+# Pyright Configuration
+PYTHON_PYRIGHT_ARGUMENTS: "--pythonpath /tmp/pyright-venv/bin/python"
 
 # Checkov Configuration
 REPOSITORY_CHECKOV_ARGUMENTS: "--skip-check CKV2_GHA_1"
