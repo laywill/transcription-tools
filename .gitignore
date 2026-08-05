@@ -1,3 +1,14 @@
+### Python ###
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+build/
+dist/
+
 ### MegaLinter ###
 # Local run artifacts from oxsecurity/megalinter - only ever meant to be
 # uploaded as a CI artifact, never committed (see .github/workflows/mega-linter.yml)

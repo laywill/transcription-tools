@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "transcription-tools"
+version = "0.1.0"
+description = "CLI tools for turning course subtitles and recordings into plain-text transcripts."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+  "pysrt",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+
+[project.scripts]
+transcription-tools = "transcription_tools.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/transcription_tools"]
