@@ -78,6 +78,16 @@ class TestConvertSrt:
         with pytest.raises(ValueError, match="Unsupported format"):
             convert_srt(srt_path, fmt="pdf")
 
+    def test_invalid_content_raises(self, tmp_path: Path) -> None:
+        srt_path = _write_srt(tmp_path, "prose.srt", "Not subtitles at all.\n")
+        with pytest.raises(ValueError, match="Not a valid .srt file"):
+            convert_srt(srt_path)
+
+    def test_empty_file_raises(self, tmp_path: Path) -> None:
+        srt_path = _write_srt(tmp_path, "empty.srt", "")
+        with pytest.raises(ValueError, match="No subtitles found"):
+            convert_srt(srt_path)
+
     def test_real_example_file(self, example_srt: Path) -> None:
         result = convert_srt(example_srt, fmt="txt")
         assert result.startswith("In this video we are going to learn")

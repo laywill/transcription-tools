@@ -18,13 +18,17 @@ def _resolve_destination(
     srt_file: Path,
     fmt: str,
     output_arg: Path | None,
+    input_root: Path,
     single_file_input: bool,
 ) -> Path:
     if output_arg is None:
         return srt_file.with_suffix(f".{fmt}")
-    if single_file_input:
+    if single_file_input and not output_arg.is_dir():
         return output_arg
-    return output_arg / srt_file.with_suffix(f".{fmt}").name
+    # Mirror the input tree under the output directory so that same-named files
+    # in different subdirectories do not overwrite each other when --recursive.
+    relative = srt_file.relative_to(input_root)
+    return output_arg / relative.with_suffix(f".{fmt}")
 
 
 def _run_srt_to_text(args: argparse.Namespace) -> int:
@@ -42,17 +46,37 @@ def _run_srt_to_text(args: argparse.Namespace) -> int:
 
     output_arg = Path(args.output) if args.output else None
     single_file_input = input_path.is_file()
+    input_root = input_path.parent if single_file_input else input_path
 
-    for srt_file in srt_files:
-        transcript = srt_to_text.convert_srt(srt_file, fmt=args.format)
-        destination = _resolve_destination(
-            srt_file, args.format, output_arg, single_file_input
+    if (
+        output_arg is not None
+        and not single_file_input
+        and output_arg.exists()
+        and not output_arg.is_dir()
+    ):
+        print(
+            f"error: --output must be a directory when input is a directory: "
+            f"{output_arg}",
+            file=sys.stderr,
         )
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(transcript, encoding="utf-8")
+        return 1
+
+    failures = 0
+    for srt_file in srt_files:
+        destination = _resolve_destination(
+            srt_file, args.format, output_arg, input_root, single_file_input
+        )
+        try:
+            transcript = srt_to_text.convert_srt(srt_file, fmt=args.format)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(transcript, encoding="utf-8")
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            print(f"error: {srt_file}: {exc}", file=sys.stderr)
+            failures += 1
+            continue
         print(f"Wrote {destination}")
 
-    return 0
+    return 1 if failures else 0
 
 
 def build_parser() -> argparse.ArgumentParser:

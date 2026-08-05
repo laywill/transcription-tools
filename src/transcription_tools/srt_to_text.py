@@ -33,7 +33,14 @@ def convert_srt(srt_path: Path, fmt: str = "txt") -> str:
             f"Unsupported format {fmt!r}; expected one of {SUPPORTED_FORMATS}"
         )
 
-    subs = pysrt.open(str(srt_path))
+    try:
+        subs = pysrt.open(str(srt_path), error_handling=pysrt.ERROR_RAISE)
+    except pysrt.Error as exc:
+        raise ValueError(f"Not a valid .srt file: {srt_path} ({exc})") from exc
+
+    if not subs:
+        raise ValueError(f"No subtitles found in {srt_path}")
+
     lines = (sub.text_without_tags.replace("\n", " ").strip() for sub in subs)
     transcript = " ".join(line for line in lines if line)
 

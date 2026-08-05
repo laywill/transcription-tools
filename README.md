@@ -58,6 +58,13 @@ subdirectories, `--output`/`-o` to write elsewhere):
 transcription-tools srt-to-text path/to/course/ --format md --recursive --output path/to/transcripts/
 ```
 
+The input directory's structure is mirrored under the output directory, so
+same-named files in different subdirectories do not overwrite each other.
+
+If a file cannot be read or is not valid SRT, it is reported on stderr and the
+remaining files are still converted; the command exits non-zero if any file
+failed.
+
 ## Development
 
 This repo runs [MegaLinter](https://megalinter.io/) in CI on every push and pull
