@@ -43,13 +43,13 @@ FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
 # Install project + dev dependencies so PYLINT and PYRIGHT can resolve imports
 # (pysrt, pytest) instead of reporting them as missing. MegaLinter runs each
 # Python-based linter in its own venv (named after the linter), so the install
-# must be repeated per linter venv.
+# must be repeated per linter venv. The `cd` is explicit because the `cwd`
+# key is ignored when `venv` is set: pip otherwise runs in /venvs/<linter>
+# and fails with "does not appear to be a Python project".
 PRE_COMMANDS:
-  - command: pip install -e .[dev]
-    cwd: "workspace"
+  - command: cd /github/workspace && pip install -e .[dev]
     venv: pylint
-  - command: pip install -e .[dev]
-    cwd: "workspace"
+  - command: cd /github/workspace && pip install -e .[dev]
     venv: pyright
 
 # Checkov Configuration
