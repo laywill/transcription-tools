@@ -129,9 +129,9 @@ def test_directory_input_output_existing_file_errors(tmp_path: Path) -> None:
 
 
 def test_batch_continues_past_unreadable_file(tmp_path: Path, capsys) -> None:
-    # Latin-1 bytes that are not valid UTF-8; pysrt decodes as UTF-8 by default.
+    # Bytes that are not valid UTF-8; pysrt decodes as UTF-8 by default.
     (tmp_path / "bad.srt").write_bytes(
-        b"1\n00:00:00,000 --> 00:00:02,000\nCaf\xe9 na\xefve.\n"
+        b"1\n00:00:00,000 --> 00:00:02,000\nbad bytes: \xff\xfe\n"
     )
     _write_srt(tmp_path, "good.srt")
 
