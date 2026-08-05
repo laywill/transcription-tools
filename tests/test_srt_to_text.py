@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from transcription_tools.srt_to_text import convert_srt, find_srt_files
 
 SIMPLE_SRT = """1
