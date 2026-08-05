@@ -45,7 +45,9 @@ def _run_srt_to_text(args: argparse.Namespace) -> int:
 
     for srt_file in srt_files:
         transcript = srt_to_text.convert_srt(srt_file, fmt=args.format)
-        destination = _resolve_destination(srt_file, args.format, output_arg, single_file_input)
+        destination = _resolve_destination(
+            srt_file, args.format, output_arg, single_file_input
+        )
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(transcript, encoding="utf-8")
         print(f"Wrote {destination}")
@@ -56,7 +58,9 @@ def _run_srt_to_text(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="transcription-tools",
-        description="CLI tools for turning course subtitles and recordings into transcripts.",
+        description=(
+            "CLI tools for turning course subtitles and recordings into transcripts."
+        ),
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

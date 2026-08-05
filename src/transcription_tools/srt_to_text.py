@@ -18,16 +18,20 @@ def find_srt_files(path: Path, recursive: bool = False) -> list[Path]:
 
     if path.is_dir():
         pattern = "**/*" if recursive else "*"
-        srt_files = (p for p in path.glob(pattern) if p.is_file() and p.suffix.lower() == ".srt")
+        srt_files = (
+            p for p in path.glob(pattern) if p.is_file() and p.suffix.lower() == ".srt"
+        )
         return sorted(srt_files)
 
     raise FileNotFoundError(f"No such file or directory: {path}")
 
 
 def convert_srt(srt_path: Path, fmt: str = "txt") -> str:
-    """Read an .srt file and return its contents as a plain-text or Markdown transcript."""
+    """Read an .srt file and return it as a plain-text or Markdown transcript."""
     if fmt not in SUPPORTED_FORMATS:
-        raise ValueError(f"Unsupported format {fmt!r}; expected one of {SUPPORTED_FORMATS}")
+        raise ValueError(
+            f"Unsupported format {fmt!r}; expected one of {SUPPORTED_FORMATS}"
+        )
 
     subs = pysrt.open(str(srt_path))
     lines = (sub.text_without_tags.replace("\n", " ").strip() for sub in subs)

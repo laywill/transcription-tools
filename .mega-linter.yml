@@ -40,5 +40,23 @@ EDITORCONFIG_EDITORCONFIG_CHECKER_FILTER_REGEX_EXCLUDE: (LICENSE)
 # Filter Configuration
 FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
 
+# Install project + dev dependencies so PYLINT and PYRIGHT can resolve imports
+# (pysrt, pytest) instead of reporting them as missing. MegaLinter runs each
+# Python-based linter in its own venv (named after the linter), so the install
+# must be repeated per linter venv.
+PRE_COMMANDS:
+  - command: pip install -e .[dev]
+    cwd: "workspace"
+    venv: pylint
+  - command: pip install -e .[dev]
+    cwd: "workspace"
+    venv: pyright
+
 # Checkov Configuration
 REPOSITORY_CHECKOV_ARGUMENTS: "--skip-check CKV2_GHA_1"
+
+# Bandit Configuration
+# Explicitly point at pyproject.toml's [tool.bandit] (bandit does not
+# auto-discover it) so B101 (assert) is skipped for the tests/ directory,
+# where assert is idiomatic pytest usage.
+PYTHON_BANDIT_ARGUMENTS: "-c pyproject.toml"

@@ -24,3 +24,16 @@ transcription-tools = "transcription_tools.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/transcription_tools"]
+
+[tool.bandit]
+# assert is idiomatic in pytest; B101 is noise in test files.
+exclude_dirs = ["tests"]
+
+[tool.pylint."messages control"]
+# Match MegaLinter's default leniency: this project intentionally keeps
+# docstrings for non-obvious behaviour only, not on every module/function.
+disable = [
+  "missing-module-docstring",
+  "missing-class-docstring",
+  "missing-function-docstring",
+]
