@@ -40,5 +40,40 @@ EDITORCONFIG_EDITORCONFIG_CHECKER_FILTER_REGEX_EXCLUDE: (LICENSE)
 # Filter Configuration
 FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
 
+# Install project + dev dependencies so PYLINT and PYRIGHT can resolve imports
+# (pysrt, pytest) instead of reporting them as missing.
+#
+# pylint runs in its own MegaLinter venv (/venvs/pylint), so the install has
+# to happen inside it. The `cd` is explicit because the `cwd` key is ignored
+# when `venv` is set: pip otherwise runs in /venvs/pylint and fails with
+# "does not appear to be a Python project".
+#
+# pyright is a Node package, not a Python venv, so there is no /venvs/pyright
+# to install into. Build a plain venv for it instead and point pyright at that
+# interpreter with --pythonpath.
+#
+# PIP_CACHE_DIR is redirected because pip's default (/github/home/.cache/pip)
+# is not writable by the container user, which makes pip warn and disable
+# caching entirely. /tmp is writable, so both installs share a real cache.
+PRE_COMMANDS:
+  - command: >-
+      cd /github/workspace &&
+      PIP_CACHE_DIR=/tmp/pip-cache pip install -e .[dev]
+    venv: pylint
+  - command: >-
+      python3 -m venv /tmp/pyright-venv &&
+      PIP_CACHE_DIR=/tmp/pip-cache
+      /tmp/pyright-venv/bin/pip install -e "/github/workspace[dev]"
+    cwd: "workspace"
+
+# Pyright Configuration
+PYTHON_PYRIGHT_ARGUMENTS: "--pythonpath /tmp/pyright-venv/bin/python"
+
 # Checkov Configuration
 REPOSITORY_CHECKOV_ARGUMENTS: "--skip-check CKV2_GHA_1"
+
+# Bandit Configuration
+# Explicitly point at pyproject.toml's [tool.bandit] (bandit does not
+# auto-discover it) so B101 (assert) is skipped for the tests/ directory,
+# where assert is idiomatic pytest usage.
+PYTHON_BANDIT_ARGUMENTS: "-c pyproject.toml"

@@ -28,3 +28,16 @@ updates:
       devcontainer:
         patterns:
           - "*"
+
+  # Maintain Python dependencies declared in pyproject.toml
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "python"
+      - "chore"
+    groups:
+      python:
+        patterns:
+          - "*"

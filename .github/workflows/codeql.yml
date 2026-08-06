@@ -44,7 +44,7 @@ jobs:
           # - go
           # - java-kotlin
           # - javascript-typescript
-          # - python
+          - python
           # - ruby
           # - rust
           # - swift
