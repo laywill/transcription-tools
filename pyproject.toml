@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "transcription-tools"
+version = "0.1.0"
+description = "CLI tools for turning course subtitles and recordings into plain-text transcripts."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+  "pysrt",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+]
+
+[project.scripts]
+transcription-tools = "transcription_tools.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/transcription_tools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Coverage lives in addopts rather than the CI workflow so that a bare `pytest`
+# behaves identically locally and in CI, and cannot silently stop measuring.
+addopts = [
+  "--cov",
+  "--cov-branch",
+  "--cov-report=term-missing",
+  "--cov-fail-under=90",
+]
+
+[tool.coverage.run]
+source = ["transcription_tools"]
+
+[tool.coverage.report]
+exclude_also = [
+  # The __main__ guard is only executed via `python -m`, not under pytest.
+  'if __name__ == "__main__":',
+]
+
+[tool.bandit]
+# assert is idiomatic in pytest; B101 is noise in test files.
+exclude_dirs = ["tests"]
+
+[tool.pylint."messages control"]
+# Match MegaLinter's default leniency: this project intentionally keeps
+# docstrings for non-obvious behaviour only, not on every module/function.
+disable = [
+  "missing-module-docstring",
+  "missing-class-docstring",
+  "missing-function-docstring",
+]
