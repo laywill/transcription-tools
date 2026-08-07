@@ -6,24 +6,15 @@ from pathlib import Path
 
 import pysrt
 
+from .file_discovery import find_files
+
 SUPPORTED_FORMATS = ("txt", "md")
+SRT_EXTENSIONS = (".srt",)
 
 
 def find_srt_files(path: Path, recursive: bool = False) -> list[Path]:
     """Resolve a file or directory input into a sorted list of .srt files."""
-    if path.is_file():
-        if path.suffix.lower() != ".srt":
-            raise ValueError(f"Not an .srt file: {path}")
-        return [path]
-
-    if path.is_dir():
-        pattern = "**/*" if recursive else "*"
-        srt_files = (
-            p for p in path.glob(pattern) if p.is_file() and p.suffix.lower() == ".srt"
-        )
-        return sorted(srt_files)
-
-    raise FileNotFoundError(f"No such file or directory: {path}")
+    return find_files(path, SRT_EXTENSIONS, recursive=recursive, label=".srt")
 
 
 def convert_srt(srt_path: Path, fmt: str = "txt") -> str:
