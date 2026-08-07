@@ -36,7 +36,20 @@
     "docstrings",
     "pythonpath",
     "testpaths",
-    "addopts"
+    "addopts",
+    "whisper",
+    "ctranslate",
+    "pyav",
+    "silero",
+    "monkeypatch",
+    "Jellyfin",
+    "Plex",
+    "webm",
+    "mkv",
+    "flac",
+    "opus",
+    "cuda",
+    "vad"
   ],
   "ignorePaths": [
     ".git",
