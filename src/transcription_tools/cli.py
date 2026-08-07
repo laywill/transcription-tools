@@ -161,6 +161,9 @@ def _run_transcribe(args: argparse.Namespace) -> int:
             )
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(transcript, encoding="utf-8")
+        # PyAV raises av.error.* for undecodable media, which subclass
+        # ValueError/OSError; CTranslate2 raises RuntimeError. Between them
+        # that covers "this one file is broken" without swallowing everything.
         except (OSError, ValueError, RuntimeError) as exc:
             print(f"error: {media_file}: {exc}", file=sys.stderr)
             failures += 1

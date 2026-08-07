@@ -3,9 +3,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from transcription_tools.transcribe import MEDIA_EXTENSIONS
 
 EXAMPLE_INPUT = Path(__file__).resolve().parent.parent / "example_input"
 EXAMPLE_SRT = EXAMPLE_INPUT / "subtitle_file.srt"
+EXPECTED_TRANSCRIPTS = EXAMPLE_INPUT / "expected"
 
 DEFAULT_FAKE_SEGMENTS = (
     (0.0, 1.5, " Hello world."),
@@ -49,10 +51,42 @@ class FakeWhisperModel:
         return iter(self.segments), info
 
 
+def example_media_files() -> list[Path]:
+    """Sample audio/video the repo carries, if any; used by the e2e tests."""
+    if not EXAMPLE_INPUT.is_dir():
+        return []
+    return sorted(
+        path
+        for path in EXAMPLE_INPUT.glob("*")
+        if path.is_file() and path.suffix.lower() in MEDIA_EXTENSIONS
+    )
+
+
 @pytest.fixture
 def example_srt() -> Path:
     assert EXAMPLE_SRT.exists(), f"missing fixture file: {EXAMPLE_SRT}"
     return EXAMPLE_SRT
+
+
+# Parametrised over whatever sample media the repo happens to carry, with a
+# None placeholder so the e2e tests skip cleanly rather than fail to collect
+# when there is none yet.
+@pytest.fixture(
+    params=example_media_files() or [None],
+    ids=lambda path: path.name if path else "none",
+)
+def example_media(request) -> Path:
+    if request.param is None:
+        pytest.skip(f"no sample audio/video in {EXAMPLE_INPUT}")
+    return request.param
+
+
+@pytest.fixture
+def expected_transcript(example_media: Path) -> str:
+    path = EXPECTED_TRANSCRIPTS / f"{example_media.stem}.txt"
+    if not path.exists():
+        pytest.skip(f"no known-good transcript at {path}")
+    return path.read_text(encoding="utf-8")
 
 
 @pytest.fixture
