@@ -9,6 +9,9 @@ Set TRANSCRIPTION_TOOLS_E2E_MODEL to try a different model size; the default
 is deliberately small so the download and the run stay quick.
 """
 
+# Tests taking a fixture as an argument is the pytest idiom, not shadowing.
+# pylint: disable=redefined-outer-name
+
 import difflib
 import importlib.util
 import os

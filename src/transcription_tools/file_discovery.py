@@ -28,7 +28,9 @@ def find_files(
     if path.is_dir():
         pattern = "**/*" if recursive else "*"
         matches = (
-            p for p in path.glob(pattern) if p.is_file() and p.suffix.lower() in suffixes
+            p
+            for p in path.glob(pattern)
+            if p.is_file() and p.suffix.lower() in suffixes
         )
         return sorted(matches)
 

@@ -98,6 +98,9 @@ def load_model(
     Raises `MissingBackendError` rather than `ImportError` so the CLI can turn
     a missing optional extra into a single actionable message.
     """
+    # Imported here, not at module scope, so the backend stays an optional
+    # extra: importing this module must not require it.
+    # pylint: disable=import-outside-toplevel
     try:
         import ctranslate2  # pyright: ignore[reportMissingImports]
         from faster_whisper import (  # pyright: ignore[reportMissingImports]

@@ -32,7 +32,9 @@ def _resolve_destination(
     return output_arg / relative.with_suffix(f".{fmt}")
 
 
-def _output_is_not_a_directory(output_arg: Path | None, single_file_input: bool) -> bool:
+def _output_is_not_a_directory(
+    output_arg: Path | None, single_file_input: bool
+) -> bool:
     return (
         output_arg is not None
         and not single_file_input
@@ -84,34 +86,13 @@ def _run_srt_to_text(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
-def _run_transcribe(args: argparse.Namespace) -> int:
-    input_path: Path = args.input
-
-    try:
-        media_files = transcribe.find_media_files(input_path, recursive=args.recursive)
-    except (FileNotFoundError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
-
-    if not media_files:
-        print(
-            f"error: no audio or video files found in {input_path}",
-            file=sys.stderr,
-        )
-        return 1
-
-    output_arg = Path(args.output) if args.output else None
-    single_file_input = input_path.is_file()
-    input_root = input_path.parent if single_file_input else input_path
-
-    if _output_is_not_a_directory(output_arg, single_file_input):
-        print(
-            f"error: --output must be a directory when input is a directory: "
-            f"{output_arg}",
-            file=sys.stderr,
-        )
-        return 1
-
+def _pending_transcriptions(
+    args: argparse.Namespace,
+    media_files: list[Path],
+    output_arg: Path | None,
+    input_root: Path,
+    single_file_input: bool,
+) -> list[tuple[Path, Path]]:
     pending = []
     for media_file in media_files:
         destination = _resolve_destination(
@@ -123,15 +104,13 @@ def _run_transcribe(args: argparse.Namespace) -> int:
             print(f"Skipping {media_file} (output exists: {destination})")
             continue
         pending.append((media_file, destination))
+    return pending
 
-    if not pending:
-        print("Nothing to transcribe; all outputs exist (use --overwrite to redo).")
-        return 0
 
-    # Loading the model is the slow part, so do it once for the whole batch —
-    # and before any transcription, so a bad model name fails fast.
+def _load_model_or_report(args: argparse.Namespace):
+    """Load the model, or report why it could not be loaded and return None."""
     try:
-        model = transcribe.load_model(
+        return transcribe.load_model(
             model=args.model,
             device=args.device,
             compute_type=args.compute_type,
@@ -139,11 +118,15 @@ def _run_transcribe(args: argparse.Namespace) -> int:
         )
     except transcribe.MissingBackendError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return 1
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"error: could not load model {args.model!r}: {exc}", file=sys.stderr)
-        return 1
+    return None
 
+
+def _transcribe_pending(
+    model, pending: list[tuple[Path, Path]], args: argparse.Namespace
+) -> int:
+    """Transcribe each queued file, returning how many failed."""
     failures = 0
     total = len(pending)
     for position, (media_file, destination) in enumerate(pending, start=1):
@@ -173,8 +156,51 @@ def _run_transcribe(args: argparse.Namespace) -> int:
             f"Wrote {destination} "
             f"({language}, {len(segments)} segments, {elapsed:.1f}s)"
         )
+    return failures
 
-    return 1 if failures else 0
+
+def _run_transcribe(args: argparse.Namespace) -> int:
+    input_path: Path = args.input
+
+    try:
+        media_files = transcribe.find_media_files(input_path, recursive=args.recursive)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    if not media_files:
+        print(
+            f"error: no audio or video files found in {input_path}",
+            file=sys.stderr,
+        )
+        return 1
+
+    output_arg = Path(args.output) if args.output else None
+    single_file_input = input_path.is_file()
+    input_root = input_path.parent if single_file_input else input_path
+
+    if _output_is_not_a_directory(output_arg, single_file_input):
+        print(
+            f"error: --output must be a directory when input is a directory: "
+            f"{output_arg}",
+            file=sys.stderr,
+        )
+        return 1
+
+    pending = _pending_transcriptions(
+        args, media_files, output_arg, input_root, single_file_input
+    )
+    if not pending:
+        print("Nothing to transcribe; all outputs exist (use --overwrite to redo).")
+        return 0
+
+    # Loading the model is the slow part, so do it once for the whole batch —
+    # and before any transcription, so a bad model name fails fast.
+    model = _load_model_or_report(args)
+    if model is None:
+        return 1
+
+    return 1 if _transcribe_pending(model, pending, args) else 0
 
 
 def build_parser() -> argparse.ArgumentParser:

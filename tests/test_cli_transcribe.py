@@ -1,3 +1,6 @@
+# Tests taking a fixture as an argument is the pytest idiom, not shadowing.
+# pylint: disable=redefined-outer-name
+
 from pathlib import Path
 
 import pytest
@@ -17,28 +20,37 @@ def _touch_media(directory: Path, name: str) -> Path:
     return path
 
 
-@pytest.fixture
-def stub_backend(monkeypatch, fake_whisper_model):
-    """Patch load_model so the CLI runs without a model download or real audio."""
-    loaded = {}
+class _StubBackend:  # pylint: disable=too-few-public-methods
+    """Patches load_model so the CLI runs with no model download or real audio.
 
-    def _install(model=None, **model_kwargs):
-        model = model or fake_whisper_model(**model_kwargs)
+    `loaded` records the keyword arguments the CLI passed to load_model, which
+    is how the option-plumbing test checks them.
+    """
+
+    def __init__(self, monkeypatch, model_factory):
+        self._monkeypatch = monkeypatch
+        self._model_factory = model_factory
+        self.loaded: dict = {}
+
+    def install(self, **model_kwargs):
+        model = self._model_factory(**model_kwargs)
 
         def fake_load_model(**kwargs):
-            loaded.update(kwargs)
+            self.loaded.update(kwargs)
             return model
 
-        monkeypatch.setattr(transcribe, "load_model", fake_load_model)
+        self._monkeypatch.setattr(transcribe, "load_model", fake_load_model)
         return model
 
-    _install.loaded = loaded
-    return _install
+
+@pytest.fixture
+def stub_backend(monkeypatch, fake_whisper_model):
+    return _StubBackend(monkeypatch, fake_whisper_model)
 
 
 def test_single_file_defaults_to_srt(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.mp4")
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(["transcribe", str(media)])
 
@@ -48,7 +60,7 @@ def test_single_file_defaults_to_srt(tmp_path, stub_backend) -> None:
 
 def test_single_file_markdown_format(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.mp4")
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(["transcribe", str(media), "--format", "md"])
 
@@ -61,7 +73,7 @@ def test_single_file_markdown_format(tmp_path, stub_backend) -> None:
 def test_single_file_explicit_output(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.m4a")
     output_path = tmp_path / "custom" / "transcript.txt"
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(
         ["transcribe", str(media), "--format", "txt", "--output", str(output_path)]
@@ -76,7 +88,7 @@ def test_recursive_output_dir_preserves_subdirectories(tmp_path, stub_backend) -
     for module in ("module-1", "module-2"):
         _touch_media(input_dir / module, "intro.mp4")
     output_dir = tmp_path / "transcripts"
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(
         ["transcribe", str(input_dir), "--recursive", "--output", str(output_dir)]
@@ -92,7 +104,7 @@ def test_directory_input_output_existing_file_errors(tmp_path, stub_backend) -> 
     _touch_media(input_dir, "one.mp4")
     output_file = tmp_path / "already-a-file.srt"
     output_file.write_text("keep me", encoding="utf-8")
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(["transcribe", str(input_dir), "--output", str(output_file)])
 
@@ -119,7 +131,7 @@ def test_directory_without_media_returns_error_code(tmp_path, capsys) -> None:
 def test_batch_continues_past_failing_file(tmp_path, stub_backend, capsys) -> None:
     _touch_media(tmp_path, "bad.mp4")
     _touch_media(tmp_path, "good.mp4")
-    stub_backend(fail_on=["bad.mp4"])
+    stub_backend.install(fail_on=["bad.mp4"])
 
     exit_code = main(["transcribe", str(tmp_path)])
 
@@ -132,7 +144,7 @@ def test_batch_continues_past_failing_file(tmp_path, stub_backend, capsys) -> No
 def test_existing_output_is_skipped(tmp_path, stub_backend, capsys) -> None:
     media = _touch_media(tmp_path, "lecture.mp4")
     (tmp_path / "lecture.srt").write_text("already done\n", encoding="utf-8")
-    model = stub_backend()
+    model = stub_backend.install()
 
     exit_code = main(["transcribe", str(media)])
 
@@ -145,7 +157,7 @@ def test_existing_output_is_skipped(tmp_path, stub_backend, capsys) -> None:
 def test_overwrite_redoes_existing_output(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.mp4")
     (tmp_path / "lecture.srt").write_text("already done\n", encoding="utf-8")
-    stub_backend()
+    stub_backend.install()
 
     exit_code = main(["transcribe", str(media), "--overwrite"])
 
@@ -155,7 +167,7 @@ def test_overwrite_redoes_existing_output(tmp_path, stub_backend) -> None:
 
 def test_model_options_are_passed_through(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.mp4")
-    model = stub_backend()
+    model = stub_backend.install()
     model_dir = tmp_path / "models"
 
     exit_code = main(
@@ -183,9 +195,7 @@ def test_model_options_are_passed_through(tmp_path, stub_backend) -> None:
         "compute_type": "float32",
         "model_dir": model_dir,
     }
-    assert model.calls == [
-        {"path": str(media), "language": "fr", "vad_filter": False}
-    ]
+    assert model.calls == [{"path": str(media), "language": "fr", "vad_filter": False}]
 
 
 def test_missing_backend_reports_install_hint(tmp_path, monkeypatch, capsys) -> None:

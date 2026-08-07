@@ -1,3 +1,7 @@
+# A fixture taking another fixture as an argument is the pytest idiom, not a
+# shadowing bug.
+# pylint: disable=redefined-outer-name
+
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,7 +26,7 @@ class FakeSegment:
     text: str
 
 
-class FakeWhisperModel:
+class FakeWhisperModel:  # pylint: disable=too-few-public-methods
     """Stand-in for faster_whisper.WhisperModel.
 
     Keeps the suite offline and instant: no model download, no audio decoding.
@@ -71,8 +75,11 @@ def example_srt() -> Path:
 # Parametrised over whatever sample media the repo happens to carry, with a
 # None placeholder so the e2e tests skip cleanly rather than fail to collect
 # when there is none yet.
+EXAMPLE_MEDIA_PARAMS: list[Path | None] = list(example_media_files()) or [None]
+
+
 @pytest.fixture(
-    params=example_media_files() or [None],
+    params=EXAMPLE_MEDIA_PARAMS,
     ids=lambda path: path.name if path else "none",
 )
 def example_media(request) -> Path:

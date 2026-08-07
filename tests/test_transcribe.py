@@ -1,10 +1,12 @@
 import sys
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
+from types import ModuleType
+from typing import Any
 
 import pytest
 from transcription_tools.srt_to_text import convert_srt
 from transcription_tools.transcribe import (
+    DEFAULT_MODEL,
     MissingBackendError,
     Segment,
     find_media_files,
@@ -164,9 +166,9 @@ class TestLoadModel:
             load_model()
 
     def test_builds_model_with_resolved_runtime(self, monkeypatch, tmp_path) -> None:
-        built = {}
+        built: dict[str, Any] = {}
 
-        class FakeWhisperModelClass:
+        class FakeWhisperModelClass:  # pylint: disable=too-few-public-methods
             def __init__(self, model, device, compute_type, download_root):
                 built.update(
                     model=model,
@@ -175,9 +177,10 @@ class TestLoadModel:
                     download_root=download_root,
                 )
 
-        fake_ctranslate2 = ModuleType("ctranslate2")
+        # Typed as Any so the type checker accepts the stubbed attributes.
+        fake_ctranslate2: Any = ModuleType("ctranslate2")
         fake_ctranslate2.get_cuda_device_count = lambda: 0
-        fake_faster_whisper = ModuleType("faster_whisper")
+        fake_faster_whisper: Any = ModuleType("faster_whisper")
         fake_faster_whisper.WhisperModel = FakeWhisperModelClass
         monkeypatch.setitem(sys.modules, "ctranslate2", fake_ctranslate2)
         monkeypatch.setitem(sys.modules, "faster_whisper", fake_faster_whisper)
@@ -192,18 +195,29 @@ class TestLoadModel:
             "download_root": str(tmp_path),
         }
 
-    def test_defaults_to_no_download_root(self, monkeypatch) -> None:
-        built = SimpleNamespace(download_root="unset")
+    def test_defaults_to_cuda_and_no_download_root(self, monkeypatch) -> None:
+        built: dict[str, Any] = {}
 
-        fake_ctranslate2 = ModuleType("ctranslate2")
+        def fake_whisper_model_class(model, device, compute_type, download_root):
+            built.update(
+                model=model,
+                device=device,
+                compute_type=compute_type,
+                download_root=download_root,
+            )
+
+        fake_ctranslate2: Any = ModuleType("ctranslate2")
         fake_ctranslate2.get_cuda_device_count = lambda: 1
-        fake_faster_whisper = ModuleType("faster_whisper")
-        fake_faster_whisper.WhisperModel = lambda *args, **kwargs: built.__setattr__(
-            "download_root", kwargs["download_root"]
-        )
+        fake_faster_whisper: Any = ModuleType("faster_whisper")
+        fake_faster_whisper.WhisperModel = fake_whisper_model_class
         monkeypatch.setitem(sys.modules, "ctranslate2", fake_ctranslate2)
         monkeypatch.setitem(sys.modules, "faster_whisper", fake_faster_whisper)
 
         load_model()
 
-        assert built.download_root is None
+        assert built == {
+            "model": DEFAULT_MODEL,
+            "device": "cuda",
+            "compute_type": "float16",
+            "download_root": None,
+        }
