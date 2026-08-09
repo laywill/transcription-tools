@@ -41,7 +41,10 @@ pytestmark = [
 
 
 def _words(text: str) -> list[str]:
-    return re.findall(r"[a-z0-9']+", text.lower())
+    # Typographic apostrophes have to fold to ASCII before the split, or a
+    # hand-written "Let's" tokenises as two words against the backend's one
+    # and costs similarity for a purely cosmetic difference.
+    return re.findall(r"[a-z0-9']+", text.lower().replace("’", "'"))
 
 
 def _similarity(actual: str, expected: str) -> float:
