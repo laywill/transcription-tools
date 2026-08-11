@@ -18,6 +18,14 @@ dev = [
   "pytest",
   "pytest-cov",
 ]
+# The Whisper backend is an extra, not a core dependency: it is ~150MB of
+# native wheels that only the `transcribe` subcommand needs, and keeping it
+# out of the base install means a lagging wheel on a new Python release
+# cannot break `srt-to-text`. faster-whisper decodes media through bundled
+# PyAV, so there is no system ffmpeg to install alongside it.
+transcribe = [
+  "faster-whisper>=1.1",
+]
 
 [project.scripts]
 transcription-tools = "transcription_tools.cli:main"
@@ -35,6 +43,9 @@ addopts = [
   "--cov-report=term-missing",
   "--cov-fail-under=90",
 ]
+markers = [
+  "e2e: real transcription against example media; needs the transcribe extra, downloads a model, and only runs with TRANSCRIPTION_TOOLS_E2E=1",
+]
 
 [tool.coverage.run]
 source = ["transcription_tools"]
@@ -48,6 +59,18 @@ exclude_also = [
 [tool.bandit]
 # assert is idiomatic in pytest; B101 is noise in test files.
 exclude_dirs = ["tests"]
+
+[[tool.mypy.overrides]]
+# Same reason as [tool.pylint.typecheck] below: the extra is not installed
+# in the linting environment.
+module = ["ctranslate2", "faster_whisper"]
+ignore_missing_imports = true
+
+[tool.pylint.typecheck]
+# faster-whisper (and its ctranslate2 dependency) is an optional extra that
+# linters do not install, so an unresolved import there is expected, not a
+# finding. The import itself is guarded at runtime by MissingBackendError.
+ignored-modules = ["ctranslate2", "faster_whisper"]
 
 [tool.pylint."messages control"]
 # Match MegaLinter's default leniency: this project intentionally keeps
