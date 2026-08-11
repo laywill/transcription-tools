@@ -45,6 +45,16 @@ PRE_COMMANDS:
 # Checkov Configuration
 REPOSITORY_CHECKOV_ARGUMENTS: "--skip-check CKV2_GHA_1"
 
+# TruffleHog Configuration
+# The Lob detector has a known false-positive bug: its pattern matches any
+# test_-prefixed identifier 35+ chars long, which collides with pytest's
+# test_ naming convention, and a 403-handling bug makes it mis-report those
+# matches as "verified". Fixed upstream but not yet in a release:
+# https://github.com/trufflesecurity/trufflehog/issues/5187
+# This project has no relation to Lob's API, so excluding the detector costs
+# nothing; remove this once a TruffleHog release includes the fix.
+REPOSITORY_TRUFFLEHOG_ARGUMENTS: "--exclude-detectors=lob"
+
 # Set the threshold for JSCPD to 5% (default is 0%) so that it does not report
 COPYPASTE_JSCPD_ARGUMENTS: "--threshold 5"
 
