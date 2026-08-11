@@ -6,7 +6,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-json
+      # - id: check-json  # Too strict. Conflicts with MegaLinter's JSON linter, which is more configurable.
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: detect-private-key

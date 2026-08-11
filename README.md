@@ -25,7 +25,14 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install the package (editable) with dev dependencies
 pip install -e ".[dev]"
+
+# Optional: add the Whisper backend needed by the `transcribe` subcommand
+pip install -e ".[dev,transcribe]"
 ```
+
+The `transcribe` extra is optional so the base install stays small — you only
+need it to turn audio/video into text. It decodes media through bundled PyAV,
+so there is no separate `ffmpeg` install.
 
 This repo includes a [Dev Container](.devcontainer/devcontainer.json) — open
 it in VS Code and choose "Reopen in Container" for a consistent,
@@ -34,8 +41,11 @@ you automatically on container create.
 
 ## Usage
 
-The CLI is subcommand-based — `srt-to-text` is the first tool, with more
-planned (see [open issues](https://github.com/laywill/transcription-tools/issues)).
+The CLI is subcommand-based — `srt-to-text` converts existing subtitles,
+`transcribe` creates them from audio or video. More tools are planned (see
+[open issues](https://github.com/laywill/transcription-tools/issues)).
+
+### `srt-to-text`
 
 Convert a single `.srt` file to plain text:
 
@@ -65,6 +75,57 @@ If a file cannot be read or is not valid SRT, it is reported on stderr and the
 remaining files are still converted; the command exits non-zero if any file
 failed.
 
+### `transcribe`
+
+Turn audio or video into text with [Whisper](https://github.com/openai/whisper),
+via [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Needs the
+optional extra (`pip install -e ".[transcribe]"`); the model itself is
+downloaded on first use and cached.
+
+```sh
+transcription-tools transcribe lecture.mp4
+# Writes lecture.srt
+```
+
+The default output is `.srt` because it is the most useful form: dropped next
+to the video, Plex and Jellyfin pick it up as a subtitle track, and the
+timestamps let you jump straight to a keyword. Pass `--format txt` or
+`--format md` for a flat transcript instead — or chain the two subcommands:
+
+```sh
+transcription-tools transcribe course/ --recursive
+transcription-tools srt-to-text course/ --recursive --format md
+```
+
+Transcribe a whole course tree, writing the transcripts elsewhere:
+
+```sh
+transcription-tools transcribe path/to/course/ --recursive --output path/to/transcripts/
+```
+
+As with `srt-to-text`, the input tree is mirrored under `--output`, a failing
+file is reported on stderr without stopping the rest, and the command exits
+non-zero if any file failed. **Files whose output already exists are skipped**,
+so an interrupted run over a large library resumes where it left off; pass
+`--overwrite` to redo them.
+
+Useful options (`--help` lists them all):
+
+- `--model` (default `turbo`) — `tiny`, `base`, `small`, `medium`,
+  `large-v3` or `turbo`. Smaller is faster and less accurate; `turbo` is close
+  to `large-v3` at a fraction of the cost.
+- `--language` (default: auto-detect) — e.g. `en`. Setting it skips detection
+  and avoids the occasional wrong guess on a quiet opening.
+- `--device` (default `auto`) — uses CUDA when available, otherwise CPU.
+- `--compute-type` (default `int8` on CPU, `float16` on CUDA) — trades speed
+  against precision.
+- `--model-dir` (default: the Hugging Face cache) — where models download to.
+- `--no-vad` — disables the voice-activity filter that skips silent stretches.
+
+Supported inputs are the common audio (`.mp3`, `.m4a`, `.wav`, `.flac`,
+`.ogg`, `.opus`, `.aac`, `.wma`) and video (`.mp4`, `.mkv`, `.mov`, `.avi`,
+`.webm`, `.m4v`, `.wmv`, `.flv`, `.ts`, `.mpg`, `.mpeg`) container formats.
+
 ## Development
 
 This repo runs [MegaLinter](https://megalinter.io/) in CI on every push and pull
@@ -82,7 +143,14 @@ workflows for security issues.
 - Tests use [pytest](https://pytest.org/) and live in [tests/](tests/). Run
   them with `pytest` (inside your venv, after `pip install -e ".[dev]"`).
   CI runs the suite in [tests.yml](.github/workflows/tests.yml) across every
-  currently-supported Python version (3.10-3.14).
+  currently-supported Python version (3.10-3.14). The suite never downloads a
+  model or decodes real audio: `transcribe` is tested against a fake backend.
+- The one test that does run Whisper for real is opt-in, since it needs the
+  extra installed and downloads a model:
+  `TRANSCRIPTION_TOOLS_E2E=1 pytest -m e2e`. It transcribes the sample media in
+  [example_input/](example_input/) and compares against the known-good
+  transcripts in `example_input/expected/`, and skips itself when either is
+  missing.
 
 ## Contributing
 
