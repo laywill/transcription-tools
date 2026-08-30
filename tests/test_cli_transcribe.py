@@ -70,6 +70,18 @@ def test_single_file_markdown_format(tmp_path, stub_backend) -> None:
     )
 
 
+def test_single_file_newlines_flag(tmp_path, stub_backend) -> None:
+    media = _touch_media(tmp_path, "lecture.mp4")
+    stub_backend.install()
+
+    exit_code = main(["transcribe", str(media), "--format", "txt", "--newlines"])
+
+    assert exit_code == 0
+    assert (tmp_path / "lecture.txt").read_text(encoding="utf-8") == (
+        "Hello world.\nSecond line.\n"
+    )
+
+
 def test_single_file_explicit_output(tmp_path, stub_backend) -> None:
     media = _touch_media(tmp_path, "lecture.m4a")
     output_path = tmp_path / "custom" / "transcript.txt"

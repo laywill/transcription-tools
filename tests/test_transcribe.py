@@ -119,6 +119,15 @@ class TestFormatTranscript:
         with pytest.raises(ValueError, match="Unsupported format"):
             format_transcript(SEGMENTS, fmt="pdf")
 
+    def test_newlines_splits_sentences(self) -> None:
+        result = format_transcript(SEGMENTS, fmt="txt", newlines=True)
+        assert result == "Hello world.\nSecond line.\n"
+
+    def test_newlines_ignored_for_srt(self) -> None:
+        assert format_transcript(SEGMENTS, fmt="srt", newlines=True) == (
+            format_transcript(SEGMENTS, fmt="srt")
+        )
+
 
 class TestTranscribeMedia:
     def test_returns_segments_and_language(self, tmp_path, fake_whisper_model) -> None:

@@ -75,6 +75,13 @@ If a file cannot be read or is not valid SRT, it is reported on stderr and the
 remaining files are still converted; the command exits non-zero if any file
 failed.
 
+Add `--newlines`/`-s` to start each sentence on its own line instead of
+joining them all with spaces:
+
+```sh
+transcription-tools srt-to-text example_input/subtitle_file.srt --newlines
+```
+
 ### `transcribe`
 
 Turn audio or video into text with [Whisper](https://github.com/openai/whisper),
@@ -121,6 +128,8 @@ Useful options (`--help` lists them all):
   against precision.
 - `--model-dir` (default: the Hugging Face cache) — where models download to.
 - `--no-vad` — disables the voice-activity filter that skips silent stretches.
+- `--newlines`/`-s` — start each sentence on its own line instead of joining
+  them with spaces (only affects `--format txt`/`md`).
 
 Supported inputs are the common audio (`.mp3`, `.m4a`, `.wav`, `.flac`,
 `.ogg`, `.opus`, `.aac`, `.wma`) and video (`.mp4`, `.mkv`, `.mov`, `.avi`,

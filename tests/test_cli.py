@@ -24,6 +24,21 @@ def test_single_file_txt_default(tmp_path: Path) -> None:
     assert output_path.read_text(encoding="utf-8") == "Hello world.\n"
 
 
+def test_single_file_newlines_flag(tmp_path: Path) -> None:
+    srt_path = tmp_path / "lecture.srt"
+    srt_path.write_text(
+        "1\n00:00:00,000 --> 00:00:02,000\nHello world.\n\n"
+        "2\n00:00:02,000 --> 00:00:04,000\nSecond line.\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["srt-to-text", str(srt_path), "-s"])
+
+    assert exit_code == 0
+    output_path = tmp_path / "lecture.txt"
+    assert output_path.read_text(encoding="utf-8") == "Hello world.\nSecond line.\n"
+
+
 def test_single_file_markdown_format(tmp_path: Path) -> None:
     srt_path = _write_srt(tmp_path, "lecture.srt")
 

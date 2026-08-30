@@ -74,7 +74,9 @@ def _run_srt_to_text(args: argparse.Namespace) -> int:
             srt_file, args.format, output_arg, input_root, single_file_input
         )
         try:
-            transcript = srt_to_text.convert_srt(srt_file, fmt=args.format)
+            transcript = srt_to_text.convert_srt(
+                srt_file, fmt=args.format, newlines=args.newlines
+            )
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(transcript, encoding="utf-8")
         except (OSError, UnicodeDecodeError, ValueError) as exc:
@@ -140,7 +142,10 @@ def _transcribe_pending(
                 vad_filter=not args.no_vad,
             )
             transcript = transcribe.format_transcript(
-                segments, fmt=args.format, title=media_file.stem
+                segments,
+                fmt=args.format,
+                title=media_file.stem,
+                newlines=args.newlines,
             )
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(transcript, encoding="utf-8")
@@ -241,6 +246,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Recurse into subdirectories when input is a directory.",
     )
+    srt_parser.add_argument(
+        "--newlines",
+        "-s",
+        action="store_true",
+        help="Start each sentence on its own line instead of joining with spaces.",
+    )
     srt_parser.set_defaults(handler=_run_srt_to_text)
 
     transcribe_parser = subparsers.add_parser(
@@ -319,6 +330,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--overwrite",
         action="store_true",
         help="Re-transcribe files whose output already exists (skipped by default).",
+    )
+    transcribe_parser.add_argument(
+        "--newlines",
+        "-s",
+        action="store_true",
+        help=(
+            "Start each sentence on its own line instead of joining with "
+            "spaces (only affects --format txt/md)."
+        ),
     )
     transcribe_parser.set_defaults(handler=_run_transcribe)
 

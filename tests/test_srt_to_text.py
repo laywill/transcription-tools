@@ -91,3 +91,23 @@ class TestConvertSrt:
         result = convert_srt(example_srt, fmt="txt")
         assert result.startswith("In this video we are going to learn")
         assert "\n\n" not in result
+
+    def test_newlines_splits_on_period(self, tmp_path: Path) -> None:
+        srt_path = _write_srt(tmp_path, "one.srt")
+        result = convert_srt(srt_path, fmt="txt", newlines=True)
+        assert result == "Hello world.\nItalic and plain text.\n"
+
+    def test_newlines_splits_on_exclamation_and_question(self, tmp_path: Path) -> None:
+        content = (
+            "1\n00:00:00,000 --> 00:00:02,000\nWatch out!\n\n"
+            "2\n00:00:02,000 --> 00:00:04,000\nWhat happened? It broke.\n"
+        )
+        srt_path = _write_srt(tmp_path, "punctuation.srt", content)
+        result = convert_srt(srt_path, fmt="txt", newlines=True)
+        assert result == "Watch out!\nWhat happened?\nIt broke.\n"
+
+    def test_newlines_false_keeps_default_joining(self, tmp_path: Path) -> None:
+        srt_path = _write_srt(tmp_path, "one.srt")
+        assert convert_srt(srt_path, fmt="txt", newlines=False) == convert_srt(
+            srt_path, fmt="txt"
+        )
