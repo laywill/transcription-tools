@@ -8,7 +8,7 @@ from collections.abc import Iterable
 # Matches whitespace between a sentence-ending punctuation mark and the
 # capitalised start of the next sentence. This is a heuristic, not a full
 # sentence tokenizer: it can false-split abbreviations like "Dr. Smith", a
-# tradeoff accepted in favour of readability (see issue #8).
+# trade-off accepted in favour of readability (see issue #8).
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 
 
