@@ -164,9 +164,7 @@ def format_transcript(
     if fmt == "srt":
         return _to_srt(segments)
 
-    transcript = join_sentences(
-        (s.text.strip() for s in segments), newlines=newlines
-    )
+    transcript = join_sentences((s.text.strip() for s in segments), newlines=newlines)
 
     if fmt == "md":
         return f"# {title}\n\n{transcript}\n"
