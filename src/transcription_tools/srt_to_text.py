@@ -7,6 +7,7 @@ from pathlib import Path
 import pysrt
 
 from .file_discovery import find_files
+from .text_formatting import join_sentences
 
 SUPPORTED_FORMATS = ("txt", "md")
 SRT_EXTENSIONS = (".srt",)
@@ -17,7 +18,7 @@ def find_srt_files(path: Path, recursive: bool = False) -> list[Path]:
     return find_files(path, SRT_EXTENSIONS, recursive=recursive, label=".srt")
 
 
-def convert_srt(srt_path: Path, fmt: str = "txt") -> str:
+def convert_srt(srt_path: Path, fmt: str = "txt", newlines: bool = False) -> str:
     """Read an .srt file and return it as a plain-text or Markdown transcript."""
     if fmt not in SUPPORTED_FORMATS:
         raise ValueError(
@@ -33,7 +34,7 @@ def convert_srt(srt_path: Path, fmt: str = "txt") -> str:
         raise ValueError(f"No subtitles found in {srt_path}")
 
     lines = (sub.text_without_tags.replace("\n", " ").strip() for sub in subs)
-    transcript = " ".join(line for line in lines if line)
+    transcript = join_sentences(lines, newlines=newlines)
 
     if fmt == "md":
         return f"# {srt_path.stem}\n\n{transcript}\n"

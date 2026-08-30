@@ -15,6 +15,7 @@ from pathlib import Path
 import pysrt
 
 from .file_discovery import find_files
+from .text_formatting import join_sentences
 
 SUPPORTED_FORMATS = ("srt", "txt", "md")
 
@@ -149,7 +150,10 @@ def transcribe_media(
 
 
 def format_transcript(
-    segments: Sequence[Segment], fmt: str = "srt", title: str = ""
+    segments: Sequence[Segment],
+    fmt: str = "srt",
+    title: str = "",
+    newlines: bool = False,
 ) -> str:
     """Render segments as SubRip, plain text, or Markdown."""
     if fmt not in SUPPORTED_FORMATS:
@@ -160,7 +164,9 @@ def format_transcript(
     if fmt == "srt":
         return _to_srt(segments)
 
-    transcript = " ".join(text for text in (s.text.strip() for s in segments) if text)
+    transcript = join_sentences(
+        (s.text.strip() for s in segments), newlines=newlines
+    )
 
     if fmt == "md":
         return f"# {title}\n\n{transcript}\n"
