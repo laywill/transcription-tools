@@ -1,3 +1,5 @@
+<!-- markdownlint-disable-file MD041 -->
+<!-- No H1: GitHub renders this file as the PR body, where the PR title is the heading. -->
 ## Summary
 
 <!-- What does this PR do and why? -->
