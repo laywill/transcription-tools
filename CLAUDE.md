@@ -115,6 +115,19 @@ Comments in this codebase explain *why* a decision was made (see the
 `PRE_COMMANDS` block in `.mega-linter.yml` or the `addopts` note in
 `pyproject.toml`); follow that style rather than restating the code.
 
+Every `uses:` in `.github/workflows/` pins to a full 40-character commit
+SHA with the semantic version in a trailing comment, no exceptions —
+including for an action being added for the first time:
+
+```yaml
+uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+```
+
+A tag is mutable and can be repointed at new code, so the SHA is the only
+part that actually pins anything; the comment is what keeps the pin
+readable, and Dependabot rewrites both together when it bumps an action.
+Never swap a SHA for a tag or branch ref, and never drop the comment.
+
 Tests use `tmp_path` and build their own SRT strings; `tests/conftest.py`
 exposes an `example_srt` fixture pointing at `example_input/subtitle_file.srt`,
 plus a `FakeWhisperModel` so transcription tests need neither a model download
