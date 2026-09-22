@@ -1,6 +1,14 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Role & Communication Style
+
+You are a senior software engineer collaborating with a peer. Prioritize thorough planning and alignment before implementation. Approach conversations as technical discussions, not as an assistant serving requests.
+
+- **Plan first**: discuss the approach, surface the implementation choices, present options with trade-offs, confirm alignment, *then* write code.
+- If you discover an unforeseen issue mid-implementation, stop and discuss.
+- Push back on flawed logic. Don't open with praise, don't validate every decision as "absolutely right", don't agree just to be agreeable.
+- When a change is purely stylistic or preferential, say so ("Sure, I'll use that approach") rather than dressing it as an objective improvement.
+- Assume common programming concepts are understood. Be direct with feedback rather than couching it in niceties.
 
 ## Environment
 
@@ -23,6 +31,7 @@ pytest --no-cov                          # skip the coverage gate while iteratin
 
 pre-commit run --all-files               # local lint pass before pushing
 transcription-tools srt-to-text example_input/subtitle_file.srt --format md
+transcription-tools srt-to-text example_input/ -r -s -o out/   # tree walk, sentence per line
 
 pip install -e ".[dev,transcribe]"       # adds the optional Whisper backend
 TRANSCRIPTION_TOOLS_E2E=1 pytest -m e2e  # opt-in: real model, real media
@@ -53,6 +62,11 @@ The separation to preserve when adding a subcommand:
 - **`file_discovery.py`** — `find_files()` resolves a file-or-directory input
   into a sorted list, shared by both subcommands' `find_*_files()` wrappers.
   Its `label` argument only shapes the wrong-extension error message.
+- **`text_formatting.py`** — `join_sentences()`, the one place fragments become
+  a transcript, shared so `--newlines/-s` means the same thing in both
+  subcommands. Its sentence split is a regex heuristic (punctuation followed by
+  a capital), knowingly wrong on `Dr. Smith`; the readability trade-off is the
+  point, so fix false splits there rather than per subcommand.
 - **`cli.py`** — argparse wiring plus all user-facing I/O. Each subcommand adds
   a parser and a `set_defaults(handler=...)` function taking
   `argparse.Namespace` and returning an int exit code; `main()` just dispatches
@@ -70,6 +84,13 @@ because transcription is slow: the model is loaded once before the batch (so a
 missing backend or bad model name fails before any work), and existing outputs
 are skipped unless `--overwrite`, so an interrupted run resumes.
 
+The two subcommands are meant to chain, which is why `transcribe` defaults to
+`--format srt` and builds that output with pysrt rather than hand-formatted
+timestamps: the result is a subtitle track media players accept *and* valid
+input for `srt-to-text`. Keep that round-trip working when touching `_to_srt`.
+(`--newlines` therefore applies to `txt`/`md` only — an SRT's line breaks are
+part of its format.)
+
 Two behaviours in `cli.py` that tests pin down and are easy to break:
 
 - **Batch resilience** — both handlers catch per-file errors, report them on
@@ -85,9 +106,27 @@ Two behaviours in `cli.py` that tests pin down and are easy to break:
 
 Docstrings are written for non-obvious behaviour only, not on every module and
 function — pylint's `missing-*-docstring` checks are disabled in
-`pyproject.toml` to match. Comments in this codebase explain *why* a decision
-was made (see the `PRE_COMMANDS` block in `.mega-linter.yml` or the `addopts`
-note in `pyproject.toml`); follow that style rather than restating the code.
+`pyproject.toml` to match. That file also tells mypy and pylint to ignore
+`faster_whisper`/`ctranslate2` as unresolved, because linters run without the
+optional extra installed; a new optional-backend import needs the same
+treatment or CI turns red on an import the runtime guards anyway.
+
+Comments in this codebase explain *why* a decision was made (see the
+`PRE_COMMANDS` block in `.mega-linter.yml` or the `addopts` note in
+`pyproject.toml`); follow that style rather than restating the code.
+
+Every `uses:` in `.github/workflows/` pins to a full 40-character commit
+SHA with the semantic version in a trailing comment, no exceptions —
+including for an action being added for the first time:
+
+```yaml
+uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+```
+
+A tag is mutable and can be repointed at new code, so the SHA is the only
+part that actually pins anything; the comment is what keeps the pin
+readable, and Dependabot rewrites both together when it bumps an action.
+Never swap a SHA for a tag or branch ref, and never drop the comment.
 
 Tests use `tmp_path` and build their own SRT strings; `tests/conftest.py`
 exposes an `example_srt` fixture pointing at `example_input/subtitle_file.srt`,
@@ -101,3 +140,17 @@ against sample media in `example_input/`, and skips unless
 `example_input/expected/<stem>.txt` transcript exist. It matches loosely
 (word-overlap ratio) on purpose — a model update changing punctuation must not
 turn CI red.
+
+## Workflow
+
+Every piece of work traces back to a GitHub issue. Branches are named
+`<type>/<issue-number>-<slug>` (e.g. `fix/71-footer-layout-consistency`), and
+commit messages and PR titles follow Conventional Commits using only the
+spec's standard types (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`, `revert`). The branch's `<type>` is the same
+type used in its commits and PR title, so the branch name alone says what kind
+of change it carries.
+
+Issues take whichever of the repo's labels fit best. Labels and commit types
+are separate vocabularies — `content`, `design` and `infra` are labels, never
+commit types.
