@@ -14,7 +14,10 @@ DISABLE_LINTERS:
   - YAML_PRETTIER  # Disable beautifying YAML with Prettier
 
 # Filter Configuration
-FILTER_REGEX_EXCLUDE: (\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)
+# Anchored to directory boundaries on both sides: an unanchored `\.git`
+# alternative also matches `.github/`, which silently hid every workflow,
+# issue template and config under `.github/` from every linter.
+FILTER_REGEX_EXCLUDE: (^|/)(\.git|\.venv|\.pytest_cache|\.vscode|__pycache__)/
 
 # Install project + dev dependencies so PYLINT and PYRIGHT can resolve imports
 # (pysrt, pytest) instead of reporting them as missing.
