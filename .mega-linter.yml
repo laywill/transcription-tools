@@ -45,6 +45,15 @@ PRE_COMMANDS:
       /tmp/pyright-venv/bin/pip install -e "/github/workspace[dev]"
     cwd: "workspace"
 
+# zizmor Configuration
+# Offline mode: online audits (artipacked's tag lookup among them) call
+# github.com with the workflow's GITHUB_TOKEN, which is rejected with a 401
+# when listing another repo's refs, aborting zizmor before any audit runs.
+# A PAT would restore them, but Dependabot runs cannot read Actions secrets,
+# and Dependabot plus CodeQL's actions analysis already cover most of what
+# the online audits check (pinned SHAs, known-vulnerable actions).
+ACTION_ZIZMOR_ARGUMENTS: "--offline"
+
 # Checkov Configuration
 REPOSITORY_CHECKOV_ARGUMENTS: "--skip-check CKV2_GHA_1"
 
