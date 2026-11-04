@@ -51,7 +51,11 @@ jobs:
 
     steps:
       # Git Checkout
-      - name: Checkout Code
+      # Credentials are persisted deliberately: the auto-fix commit step at
+      # the end pushes with them. The artifact upload only archives
+      # megalinter-reports/ and mega-linter.log, never .git, so the token is
+      # not exposed by zizmor's artipacked concern.
+      - name: Checkout Code  # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
@@ -151,9 +155,12 @@ jobs:
 
       - name: Create PR output
         if: env.APPLY_FIXES_IF_PR == 'true'
+        env:
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
         run: |
-          echo "PR Number - ${{ steps.cpr.outputs.pull-request-number }}"
-          echo "PR URL - ${{ steps.cpr.outputs.pull-request-url }}"
+          echo "PR Number - ${PR_NUMBER}"
+          echo "PR URL - ${PR_URL}"
 
       # Push new commit if applicable
       # (for now works only on PR from same repository, not from forks)

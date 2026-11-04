@@ -23,6 +23,7 @@
   ],
   "words": [
     "addopts",
+    "artipacked",
     "autouse",
     "capsys",
     "conftest",
@@ -42,7 +43,9 @@
     "srt",
     "testpaths",
     "Udemy",
-    "unloadable"
+    "unloadable",
+    "zizmor",
+    "ZIZMOR"
   ],
   "ignorePaths": [
     ".git",
